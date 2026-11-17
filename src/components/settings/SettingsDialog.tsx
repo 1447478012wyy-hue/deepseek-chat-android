@@ -452,12 +452,32 @@ const useHistoryImport = () => {
     importing.current = true
     setFile(null)
     setBusy(true)
-    setStatus(null)
+    // 图片多的归档在手机上要几分钟，一直显示进度，避免看起来没反应
+    setStatus({ key: 'historyImporting', params: { sessions: 0, images: 0 } })
     try {
-      const count = await importHistory(file)
-      setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
-    } catch {
-      setStatus({ key: 'historyImportFailed', error: true })
+      const count = await importHistory(file, (progress) =>
+        setStatus({ key: 'historyImporting', params: progress })
+      )
+      const done: TranslationMessage = {
+        key: count === 1 ? 'historyImportedOne' : 'historyImported',
+        params: { count },
+      }
+      setStatus(done)
+      // 关掉设置，直接露出导入的对话列表
+      showToast(done)
+      closeSettings()
+    } catch (error) {
+      const failed: TranslationMessage =
+        error instanceof BackupError
+          ? { key: error.key }
+          : error instanceof DOMException && error.name === 'QuotaExceededError'
+            ? { key: 'historyImportNoSpace' }
+            : {
+                key: 'historyImportFailedReason',
+                params: { message: error instanceof Error ? error.message : String(error) },
+              }
+      setStatus({ ...failed, error: true })
+      showToast({ ...failed, type: 'error' })
     } finally {
       importing.current = false
       setBusy(false)

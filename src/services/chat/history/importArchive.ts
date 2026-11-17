@@ -78,11 +78,18 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
  */
-export const importArchive = async (file: File): Promise<void> => {
+/** 导入进度：已暂存的会话数与图片原件数（总数要读完才知道，只报已处理的数量） */
+export type ImportProgress = { sessions: number; images: number }
+
+export const importArchive = async (
+  file: File,
+  onProgress?: (progress: ImportProgress) => void
+): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
   const imported = new Set<string>()
+  const report = () => onProgress?.({ sessions: imported.size, images: stored.size })
   const images = new Map<string, string>()
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
   const stored = new Map<string, string>()
@@ -99,6 +106,7 @@ export const importArchive = async (file: File): Promise<void> => {
     const type = imageType(new Uint8Array(await data.slice(0, 16).arrayBuffer()))
     await db.saveStagingFiles([{ id, blob: new Blob([data], { type }) }])
     stored.set(id, type)
+    report()
   }
 
   try {
@@ -125,6 +133,7 @@ export const importArchive = async (file: File): Promise<void> => {
           images.set(imagePath, id)
         }
         await db.addStagingSession(local.session)
+        report()
       } else if (path === INDEX_PATH && !index) {
         index = readSessionIndex(await readJson(entry))
       } else if (

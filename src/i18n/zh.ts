@@ -115,6 +115,9 @@ export const zh = {
   historyImportConfirmTitle: '确认导入历史对话？',
   historyImportConfirmDescription: '上传的历史对话会覆盖当前所有对话记录，是否确认导入？',
   historyImportDescription: '导入历史对话会覆盖全部本地对话和附件，支持 DeepSeek 导出的 ZIP 文件。',
+  historyImporting: '正在导入：已处理 {sessions} 个对话、{images} 张图片。图片多时需要几分钟，请不要离开',
+  historyImportFailedReason: '导入失败：{message}',
+  historyImportNoSpace: '存储空间不足，导入失败。请清理手机空间后重试',
   historyImportedOne: '已导入 1 个对话',
   historyImported: '已导入 {count} 个对话',
   historyImportFailed:
